@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 class BaseHandler {
     constructor(db) {
         this.db = db;
@@ -30,13 +32,16 @@ class BaseHandler {
         return character;
     }
 
-    
     // Проверка, что пользователь является владельцем комнаты
     async checkUserIsRoomOwner(userId) {
         const roomMember = await this.db.getRoomMemberByUserId(userId);
         
         // Проверка, что пользователь в комнате и является владельцем
-        if (!roomMember || roomMember.type !== 'owner') {
+        if (!roomMember) {
+            return { error: 2006 };
+        }
+        
+        if (roomMember.type !== 'owner') {
             return { error: 2010 };
         }
         
@@ -48,7 +53,11 @@ class BaseHandler {
         const room = await this.db.getRoomById(roomId);
         
         // Проверка существования комнаты и её статуса
-        if (!room || room.status !== 'started') {
+        if (!room) {
+            return { error: 2003 };
+        }
+        
+        if (room.status !== 'started') {
             return { error: 2011 };
         }
         
@@ -66,36 +75,60 @@ class BaseHandler {
         return roomMember;
     }
     
+    // Получение комнаты по ID участника
+    async getRoomByMember(roomMember) {
+        const room = await this.db.getRoomById(roomMember.roomId);
+        if (!room) {
+            return { error: 2003 };
+        }
+        return room;
+    }
 
     async useArrow(characterId) {
-         //получаем запись о расходнике
+        // получаем запись о расходнике
         const consumable = await this.db.getCharacterConsumable(characterId, "arrow");
-        //обрабатываем в зависимости от количества
+        if (!consumable) return false;
+        
+        // обрабатываем в зависимости от количества
         if (consumable.quantity > 1) {
-            //уменьшаем количество на 1
+            // уменьшаем количество на 1
             const newQuantity = consumable.quantity - 1;
             await this.db.updateUserItemQuantity(characterId, consumable.itemId, newQuantity);
         } else {
-            //последний предмет - удаляем
+            // последний предмет - удаляем
             await this.db.deleteUserItem(characterId, consumable.itemId);
         }
         return true;
     }
 
     async usePotion(characterId) {
-         //получаем запись о расходнике
+        // получаем запись о расходнике
         const consumable = await this.db.getCharacterConsumable(characterId, "potion");
+        if (!consumable) return false;
         
-        //обрабатываем в зависимости от количества
+        // обрабатываем в зависимости от количества
         if (consumable.quantity > 1) {
-            //уменьшаем количество на 1
+            // уменьшаем количество на 1
             const newQuantity = consumable.quantity - 1;
             await this.db.updateUserItemQuantity(characterId, consumable.itemId, newQuantity);
         } else {
-            //последний предмет - удаляем
+            // последний предмет - удаляем
             await this.db.deleteUserItem(characterId, consumable.itemId);
         }
         return true;
+    }
+
+    async isUserPlaying(userId) {
+        return await this.db.isUserPlaying(userId);
+    }
+
+    async leaveParticipantFromRoom(userId) {
+        return await this.db.leaveParticipantFromRoom(userId);
+    }
+
+    // Генерация MD5 хеша
+    md5(input) {
+        return crypto.createHash('md5').update(String(input)).digest('hex');
     }
 }
 

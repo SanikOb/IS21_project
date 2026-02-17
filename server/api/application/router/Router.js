@@ -110,6 +110,56 @@ function Router(mediator) {
         res.json(Answer.response(response));
     });
 
+    // ============ LOBBY ROUTES ============
+    // CREATE_ROOM
+    router.post('/createRoom{/:token}{/:roomName}{/:roomSize}', async (req, res) => {
+        const params = {
+            token: req.params.token,
+            roomName: req.params.roomName,
+            roomSize: req.params.roomSize
+        };
+        const response = await mediator.call(mediator.getEventTypes().CREATE_ROOM, params);
+        res.json(Answer.response(response));
+    });
+    
+    // JOIN_TO_ROOM
+    router.post('/joinToRoom{/:token}{/:roomId}', async (req, res) => {
+        const params = {
+            token: req.params.token,
+            roomId: req.params.roomId
+        };
+        const response = await mediator.call(mediator.getEventTypes().JOIN_TO_ROOM, params);
+        res.json(Answer.response(response));
+    });
+    
+    // LEAVE_ROOM
+    router.post('/leaveRoom{/:token}', async (req, res) => {
+        const params = {
+            token: req.params.token
+        };
+        const response = await mediator.call(mediator.getEventTypes().LEAVE_ROOM, params);
+        res.json(Answer.response(response));
+    });
+    
+    // DROP_FROM_ROOM
+    router.post('/dropFromRoom{/:token}{/:targetToken}', async (req, res) => {
+        const params = {
+            token: req.params.token,
+            targetToken: req.params.targetToken
+        };
+        const response = await mediator.call(mediator.getEventTypes().DROP_FROM_ROOM, params);
+        res.json(Answer.response(response));
+    });
+    
+    // START_GAME
+    router.post('/startGame{/:token}', async (req, res) => {
+        const params = {
+            token: req.params.token
+        };
+        const response = await mediator.call(mediator.getEventTypes().START_GAME, params);
+        res.json(Answer.response(response));
+    });
+
     // ============ NOT FOUND ============
     router.get('/*path', (req, res) => {
         res.json(Answer.response({ error: 404 }));
