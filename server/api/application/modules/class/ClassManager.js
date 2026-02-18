@@ -2,7 +2,7 @@ const BuyClassHandler = require('../../router/handlers/classHandlers/buyClassHan
 const SelectClassHandler = require('../../router/handlers/classHandlers/selectClassHandler.js');
 const GetClassesHandler = require('../../router/handlers/classHandlers/getClassesHandler.js');
 
-class ClassHandler {
+class ClassManager {
     constructor({ mediator, db }) {
         this.db = db;
         this.mediator = mediator;
@@ -44,4 +44,4 @@ class ClassHandler {
 
 }
 
-module.exports = ClassHandler;
+module.exports = ClassManager;

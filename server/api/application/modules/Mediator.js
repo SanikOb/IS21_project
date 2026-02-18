@@ -10,7 +10,7 @@ class Mediator {
         });
 
         Object.keys(TRIGGERS).forEach(key => {
-            this.triggers[this.TRIGGERS[key]] = null;
+            this.triggers[this.TRIGGERS[key]] = () => {return null;};
         });
     }
 
@@ -24,15 +24,26 @@ class Mediator {
         }
     }
 
-    async call(name, data) {
+    //А ЭТО ПРОСТО РАБОТАЕТ
+    call(name, data) {
         if (this.events[name]) {
             const event = this.events[name][0];
             if (event instanceof Function) {
-                return await event(data);
+                return event(data);
             }
         }
-        return null;
     }
+
+    /* //ОНО РАБОТАЕТ, НО ЧЕ-ТО ОШИБКИ НЕ ОБРАБАТЫВАЮТСЯ... (ПОМОГИТИ)
+    call(name, data) {
+        if (this.events[name]) {
+            this.events[name].forEach(event => {
+                if (event instanceof Function) {
+                    event(data);
+                }
+            });
+        }
+    }*/
 
     unsubscribe(name, _func) {
         if (!this.events[name]) return;
@@ -66,9 +77,9 @@ class Mediator {
         }
     }
 
-    async get(name, data) {
+    get(name, data) {
         if (this.triggers[name] && this.triggers[name] instanceof Function) {
-            return await this.triggers[name](data);
+            return this.triggers[name](data);
         }
         return null;
     }

@@ -23,15 +23,14 @@ class CONFIG {
     //ивенты
     static EVENTS = {
         //user events
-        LOGIN: 'LOGIN',
         LOGOUT: 'LOGOUT',
         REGISTRATION: 'REGISTRATION',
         DELETE_USER: 'DELETE_USER',
         //items events
         BUY_ITEM: 'BUY_ITEM',
         SELL_ITEM: 'SELL_ITEM',
-        USE_ARROW: 'USE_ARROW',
-        USE_POTION: 'USE_POTION',
+        APPLY_ARROW: 'APPLY_ARROW',
+        APPLY_POTION: 'APPLY_POTION',
         //chat events
         SEND_MESSAGE: 'SEND_MESSAGE',
         //shop events
@@ -42,6 +41,7 @@ class CONFIG {
     //триггеры
     static TRIGGERS = {
         //user triggers
+        LOGIN: 'LOGIN',
         GET_USER_INFO: 'GET_USER_INFO',
         GET_RATING_TABLE: 'GET_RATING_TABLE',
         //items triggers
