@@ -28,7 +28,7 @@ function Router(mediator) {
     router.post('/deleteUser{/:token}', useDeleteUserHandler(mediator, Answer));
     router.get('/login{/:login}{/:passwordHash}', useLoginHandler(mediator, Answer));
     router.get('/getUserInfo{/:token}', useGetUserInfoHandler(mediator, Answer));
-    router.get('/getRatingTable/:token', useGetRatingTableHandler(mediator, Answer));
+    router.get('/getRatingTable{/:token}', useGetRatingTableHandler(mediator, Answer));
 
     // ============ ITEMS ROUTES ============
     router.post('/buyItem{/:token}{/:itemId}', useBuyItemHandler(mediator, Answer));
