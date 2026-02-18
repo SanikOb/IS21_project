@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 const CONFIG = require('../../../config.js');
+const ORM = require('./ORM.js');
 
 class DB {
     constructor() {
@@ -14,6 +15,7 @@ class DB {
             connectionLimit: 10,
             queueLimit: 0
         });
+        this.orm = new ORM(this.pool);
     }
 
     async execute(sql, params = []) {
@@ -33,26 +35,23 @@ class DB {
 
     // ============ USER METHODS ============
     async getUserByLogin(login) {
-        return await this.query("SELECT * FROM users WHERE login=?", [login]);
+        return this.orm.get('users', { login });
     }
 
     async getUserByToken(token) {
-        return await this.query("SELECT * FROM users WHERE token=?", [token]);
+        return this.orm.get('users', { token });
     }
 
     async getUserById(id) {
-        return await this.query("SELECT * FROM users WHERE id = ?", [id]);
+        return this.orm.get('users', { id });
     }
 
     async updateToken(userId, token) {
-        await this.execute("UPDATE users SET token=? WHERE id=?", [token, userId]);
+        return this.orm.update('users', { id: userId }, { token });
     }
 
     async registration(login, password, nickname) {
-        await this.execute(
-            "INSERT INTO users (login, password, nickname) VALUES (?, ?, ?)",
-            [login, password, nickname]
-        );
+        return this.orm.insert('users', { login, password, nickname });
     }
 
     async getRatingTable() {
@@ -70,20 +69,18 @@ class DB {
 
     // ============ CHARACTER METHODS ============
     async getCharacterByUserId(userId) {
-        return await this.query("SELECT * FROM characters WHERE user_id = ?", [userId]);
+        return this.orm.get('characters', { user_id: userId });
     }
 
     async createCharacter(userId) {
-        const result = await this.execute(
-            "INSERT INTO characters (user_id, hp, defense, money) VALUES (?, 100, 0, 1000)",
-            [userId]
+        return this.orm.insert(
+            'characters',
+            { user_id: userId, hp: 100, defence: 0, money: 1000 }
         );
-        return result.affectedRows > 0;
     }
 
     async deleteCharacter(userId) {
-        const result = await this.execute("DELETE FROM characters WHERE user_id = ?", [userId]);
-        return result.affectedRows > 0;
+        return this.orm.delete('characters', { user_id: userId });
     }
 
     async updateCharacterMoneyAdd(characterId, amount) {
@@ -100,60 +97,67 @@ class DB {
     async getUserTypeInRoom(userId) {
         const character = await this.getCharacterByUserId(userId);
         if (!character) return null;
-        return await this.query("SELECT type, room_id as roomId FROM room_members WHERE character_id=?", [character.id]);
+        return this.orm.get(
+            'room_members',
+            { character_id: character.id },
+            'type, room_id as roomId'
+        );
     }
 
     // ============ MESSAGE METHODS ============
     async deleteUserMessages(userId) {
-        const result = await this.execute("DELETE FROM messages WHERE user_id = ?", [userId]);
-        return result.affectedRows > 0;
+        return this.orm.delete('messages', { user_id: userId });
     }
 
     // ============ CLASS METHODS ============
     async getPersonClassById(id) {
-        return await this.query("SELECT * FROM classes WHERE id = ?", [id]);
+        return this.orm.get('classes', { id });
     }
 
     async getAllPersonClasses() {
-        return await this.queryAll("SELECT * FROM classes");
+        return this.orm.all('classes');
     }
 
     async getUserPersonClass(userId, classId) {
         const character = await this.getCharacterByUserId(userId);
         if (!character) return null;
-        return this.query(
-            "SELECT * FROM characters_classes WHERE character_id = ? and class_id = ?",
-            [character.id, classId]
+        return this.orm.get(
+            'characters_classes',
+            { character_id: character.id, class_id: classId }
         );
     }
 
     async addUserPersonClass(userId, classId) {
         const character = await this.getCharacterByUserId(userId);
         if (!character) return false;
-        return this.execute(
-            "INSERT INTO characters_classes (character_id, class_id, selected) VALUES (?, ?, 0)",
-            [character.id, classId]
+        return this.orm.insert(
+            'characters_classes',
+            {
+                character_id: character.id,
+                class_id: classId,
+                selected: 0
+            }
         );
     }
 
     async clearSelectedUserClasses(userId) {
         const character = await this.getCharacterByUserId(userId);
         if (!character) return false;
-        return this.execute(
-            "UPDATE characters_classes SET selected = 0 WHERE character_id = ?",
-            [character.id]
+        return this.orm.update(
+            'characters_classes',
+            { character_id: character.id },
+            { selected: 0 }
         );
     }
 
     async getUserSelectedClassId(userId) {
         const character = await this.getCharacterByUserId(userId);
         if (!character) return null;
-
-        const result = await this.query(
-            "SELECT class_id FROM characters_classes WHERE character_id = ? AND selected = 1",
-            [character.id]
+        const result = this.orm.get(
+            'characters_classes',
+            { character_id: character.id, selected: 1 },
+            'class_id'
         );
-
         return result ? result.class_id : null;
     }
 
@@ -184,11 +188,11 @@ class DB {
         const character = await this.getCharacterByUserId(userId);
         if (!character) return false;
 
-        const result = await this.execute(
-            "UPDATE characters_classes SET selected = 1 WHERE character_id = ? AND class_id = ?",
-            [character.id, classId]
+        return this.orm.update(
+            'characters_classes',
+            { character_id: character.id, class_id: classId },
+            { selected: 1 }
         );
-        return result.affectedRows > 0;
     }
 
     // ============ ITEM METHODS ============
@@ -213,16 +217,17 @@ class DB {
     }
 
     async getUserItem(characterId, itemId) {
-        return await this.query(
-            "SELECT * FROM character_items WHERE character_id=? AND item_id=?",
-            [characterId, itemId]
-        );
+        return this.orm.get(
+            'character_items',
+            { character_id: characterId, item_id: itemId }
+        )
     }
 
     async getUserPurchasedItemsWithQuantity(characterId) {
-        const results = await this.queryAll(
-            "SELECT item_id as itemId, quantity FROM character_items WHERE character_id = ?",
-            [characterId]
+        const results = this.orm.all(
+            'character_items',
+            { character_id: characterId },
+            'item_id as itemId, quantity'
         );
 
         return results.map(row => ({
@@ -232,11 +237,10 @@ class DB {
     }
 
     async addUserItem(characterId, itemId) {
-        const result = await this.execute(
-            "INSERT INTO character_items (character_id, item_id, quantity) VALUES (?, ?, 1)",
-            [characterId, itemId]
+        return this.orm.insert(
+            'character_items',
+            { character_id: characterId, item_id: itemId, quantity: 1 }
         );
-        return result.affectedRows > 0;
     }
 
     async hasCharacterWeaponType(characterId, weaponType) {
@@ -285,7 +289,7 @@ class DB {
         );
         return potionItem && potionItem.quantity > 0;
     }
-    
+
     async getCharacterConsumable(characterId, itemType) {
         const result = await this.query(
             `SELECT ci.id, ci.item_id as itemId, ci.quantity 
@@ -298,19 +302,18 @@ class DB {
     }
 
     async updateUserItemQuantity(characterId, itemId, quantity) {
-        const result = await this.execute(
-            "UPDATE character_items SET quantity = ? WHERE character_id = ? AND item_id = ?",
-            [quantity, characterId, itemId]
+        return this.orm.update(
+            'character_items',
+            { character_id: characterId, item_id: itemId },
+            { quantity }
         );
-        return result.affectedRows > 0;
     }
 
     async deleteUserItem(characterId, itemId) {
-        const result = await this.execute(
-            "DELETE FROM character_items WHERE character_id = ? AND item_id = ?", 
-            [characterId, itemId]
+        return this.orm.delete(
+            'character_items',
+            { character_id: characterId, item_id: itemId }
         );
-        return result.affectedRows > 0;
     }
 
     async getAllItemsData() {
@@ -332,37 +335,32 @@ class DB {
 
     // ============ DELETE USER METHODS ============
     async deleteAllCharacterItems(characterId) {
-        const result = await this.execute("DELETE FROM character_items WHERE character_id = ?", [characterId]);
-        return result.affectedRows > 0;
+        return this.orm.delete('character_items', { character_id: characterId });
     }
 
     async deleteAllCharacterClasses(characterId) {
-        const result = await this.execute("DELETE FROM characters_classes WHERE character_id = ?", [characterId]);
-        return result.affectedRows > 0;
+        return this.orm.delete('characters_classes', { character_id: characterId });
     }
 
     async deleteUser(userId) {
-        const result = await this.execute("DELETE FROM users WHERE id=?", [userId]);
-        return result.affectedRows > 0;
+        return this.orm.delete('users', { user_id: userId });
     }
 
     // ============ CHAT METHODS ============
 
     async getChatHash() {
-        return await this.query("SELECT * FROM hashes WHERE id=1");
+        return this.orm.get('hashes', { id: 1 });
     }
 
     async updateChatHash(hash) {
-        const result = await this.execute("UPDATE hashes SET chat_hash=? WHERE id=1", [hash]);
-        return result.affectedRows > 0;
+        return this.orm.update('hashes', { id: 1 }, { chat_hash: hash });
     }
 
     async addMessage(userId, message) {
-        const result = await this.execute(
-            "INSERT INTO messages (user_id, message, created) VALUES (?,?, now())",
-            [userId, message]
+        return this.orm.insert(
+            'messages', 
+            { user_id: userId, message, created: 'now()'}
         );
-        return result.affectedRows > 0;
     }
 
     async getMessages() {
@@ -376,8 +374,7 @@ class DB {
     }
 
     async deleteUserMessages(userId) {
-        const result = await this.execute("DELETE FROM messages WHERE user_id = ?", [userId]);
-        return result.affectedRows > 0;
+        return this.orm.delete('message', { user_id: userId });
     }
 
     // ============ TRANSACTION METHODS ============
